@@ -1,4 +1,4 @@
-*** Run following commands in termianl from directory "billing-app" to build the click-on app: "comptability_program/project/Build/Java files main". *** 
+*** Run following commands in terminal from directory "billing-app" to build the click-on app: "comptability_program/project/Build/Java files main". *** 
 
 cd "project/Build/billing-app"
 mvn clean package
@@ -15,4 +15,4 @@ jpackage \
   --java-options "-Xmx512m"
 
 
-*** App icon will be outputed on the out directory inside /target. ***
+*** App will be outputed on the /out directory inside /target. ***
