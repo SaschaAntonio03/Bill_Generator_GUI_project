@@ -1,10 +1,29 @@
-import javax.swing.*;
-import javax.swing.tree.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
-import java.time.*;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;              // <-- only the NIO Path
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
+import javax.swing.AbstractAction;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 
 public class BillingApp extends JFrame {
     private final Database db = new Database();
@@ -19,8 +38,27 @@ public class BillingApp extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(600,400);
 
-        // load on start
+        // 1) pick a user‐writable spot (Application Support on macOS)
+        String usr = System.getProperty("user.home");
+        Path appSupport = Paths.get(usr,
+        "Library","Application Support","BillingApp");
+        if (!Files.exists(appSupport)) {
+            Files.createDirectories(appSupport);
+        }
+        File dbFile = appSupport.resolve("database.csv").toFile();
+
+        // 2) if first run, copy the _embedded_ blank CSV out
+        if (!dbFile.exists()) {
+            try (InputStream in = getClass().getResourceAsStream("/database.csv")) {
+                if (in == null) throw new FileNotFoundException(
+                    "database.csv not bundled in JAR!");
+                Files.copy(in, dbFile.toPath());
+            }
+        }
+
+        // 3) now load
         db.loadFromCsv(dbFile);
+
 
         addWindowListener(new WindowAdapter(){
             public void windowClosing(WindowEvent e) {
@@ -111,9 +149,24 @@ public class BillingApp extends JFrame {
                 }
 
                 // 1) template file (adjust if yours lives elsewhere)
-                File template = new File("lib/Soumission-Canal1-2.xlsx");
-                if (!template.exists()) {
-                    showErr("Template not found at " + template.getPath());
+                // old File template = new File("lib/Soumission-Canal1-2.xlsx");
+
+                File template;
+                try (InputStream tplIn =
+                        getClass().getResourceAsStream("/Soumission-Canal1-2.xlsx")) {
+                    if (tplIn == null) {
+                        showErr("Template not bundled in JAR!");
+                        return;
+                    }
+                    Path tmp = Files.createTempFile("tpl", ".xlsx");
+                    Files.copy(tplIn, tmp, StandardCopyOption.REPLACE_EXISTING);
+                    template = tmp.toFile();
+                } catch (IOException ioe) {
+                    showErr("Cannot load template: " + ioe.getMessage());
+                    return;
+                }
+                if (template==null || !template.exists()) {
+                    showErr("Template not available");
                     return;
                 }
 
