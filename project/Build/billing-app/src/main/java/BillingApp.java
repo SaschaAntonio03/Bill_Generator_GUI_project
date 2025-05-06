@@ -170,10 +170,25 @@ public class BillingApp extends JFrame {
                     return;
                 }
 
-                // 2) output filename based on timestamp
-                String outName = dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
-                        + ".xlsx";
-                File outFile = new File(outName);
+                // 2) decide output filename based on timestamp
+                String outName = dt.format(
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
+                    + ".xlsx";
+
+                // 3) compute the Application-Support path & handle IOExceptions
+                File outFile;
+                try {
+                    String userHome = System.getProperty("user.home");
+                    Path appSupport = Paths.get(userHome,
+                                                "Library","Application Support","BillingApp");
+                    if (!Files.exists(appSupport)) {
+                        Files.createDirectories(appSupport);
+                    }
+                    outFile = appSupport.resolve(outName).toFile();
+                } catch (IOException ioe) {
+                    showErr("Could not prepare output file location:\n" + ioe.getMessage());
+                    return;
+                }
 
                 // 3) export
                 try {
